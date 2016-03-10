@@ -8,7 +8,7 @@ load("predictors.Rdata")
 library(sn)
 library(fields)
 library(mvtnorm)
-
+#
 # dates:        all dates for which data are available
 # stations:     names of all stations for which data are available
 # lat, lon:     longitude and latitude coordinate for each of these stations
