@@ -3,11 +3,12 @@
 ## Hmwk #5 Partial Solutions
 
 rm(list=ls())
-setwd("~/Desktop/Desktop2/MATH 482/2016/RCode/")
+setwd("Z:/Practicum-HW5")
 load("predictors.Rdata")
 library(sn)
 library(fields)
 library(mvtnorm)
+
 
 # dates:        all dates for which data are available
 # stations:     names of all stations for which data are available
@@ -24,7 +25,8 @@ library(mvtnorm)
 cols=1:16  	#Columns (i.e. levels) of the temperature profiles to be used in the 
 years=as.numeric(substr(dates,1,4))
 months=as.numeric(substr(dates,5,6))
-
+all.months= as.numeric(substr(dates[date.ind],5,6))
+all.years = as.numeric(substr(dates[date.ind],1,4))
 ############################
 ##Computing Prior Probabilities
 ############################
@@ -95,21 +97,22 @@ ind=0
 for(i in 1:12){
   
   ##UPDATE THESE
-  
-  train.years=1996:2000+i-1
+
+  train.years=1996:2001+i-1
   test.years=2000+i
   
   print(i)
   
-  train.labels=which(years>=train.years[1]& years<=train.years[5])
-  test.labels=which(years==test.years)
+  train.labels.start = min(which( all.months >= 9 & all.years >=train.years[1]))
+  train.labels.end = max(which( all.months <= 5 & all.years<=train.years[6]))
+  test.labels.start=min(which(all.months >= 9 & all.years==test.years ))
+  test.labels.end=max(which( all.months <= 5 & all.years==test.years+1 ))
   
-  train.rows=which(date.ind%in%train.labels)
-  test.rows=which(date.ind%in%test.labels)
+  train.nn[i]=train.labels.end-train.labels.start+1
+  test.nn[i]=test.labels.end - test.labels.start+1
   
-  train.nn[i]=length(train.rows)
-  test.nn[i]=length(test.rows)
-  
+  train.rows = train.labels.start:train.labels.end
+  test.rows = test.labels.start:test.labels.end
   #######################################################
   ##Computing means and covariances for each precip type
   #######################################################
@@ -129,68 +132,103 @@ for(i in 1:12){
   cov.train[[4]][[i]]=cov(Twb.prof[train.rows[ice.rows],cols])
   
   
-  #######################################################
-  ##Computing probabilities of observations belonging to
-  ##each of the 4 groups
-  #######################################################
-  
-  for(j in 1:test.nn[i]){
-    if(j%%1000==0){print(j)}
-    ind=ind+1
-    
-    station.j=station.ind[test.rows[j]]
-    mon.j=months[date.ind[test.rows[j]]]
-    mon.col=which(sort(unique(months))==mon.j)
-    
-    pi.smk=prior.probs[station.j,mon.col,]
-    pi.den.rain=pi.smk[1]*dmvnorm(Twb.prof[test.rows[j],cols], mean.train[[1]][,i], cov.train[[1]][[i]])
-    pi.den.snow=pi.smk[2]*dmvnorm(Twb.prof[test.rows[j],cols], mean.train[[2]][,i], cov.train[[2]][[i]])
-    pi.den.pellet=pi.smk[3]*dmvnorm(Twb.prof[test.rows[j],cols], mean.train[[3]][,i], cov.train[[3]][[i]])
-    pi.den.freeze=pi.smk[4]*dmvnorm(Twb.prof[test.rows[j],cols], mean.train[[4]][,i], cov.train[[4]][[i]])
-    collection=c(pi.den.rain,pi.den.snow,pi.den.pellet,pi.den.freeze)
-    prob.hats[ind,1:4]=collection/sum(collection)
-    prob.hats[ind,5]=ptype[test.rows[j]]	
-  }
+
+
 }
 
+#######################################################
+##Computing probabilities of observations belonging to
+##each of the 4 groups
+#######################################################
+# for(i in 1:12){
+#   train.years=1996:2001+i-1
+#   test.years=2000+i
+#   
+#   train.labels.start = min(which( all.months >= 9 & all.years >=train.years[1]))
+#   train.labels.end = max(which( all.months <= 5 & all.years<=train.years[6]))
+#   test.labels.start=min(which(all.months >= 9 & all.years==test.years ))
+#   test.labels.end=max(which( all.months <= 5 & all.years==test.years+1 ))
+#   
+#   train.rows = train.labels.start:train.labels.end
+#   test.rows = test.labels.start:test.labels.end
+#   for(j in 1:test.nn[i]){
+#     #if(j%%1000==0){print(j)}
+#     ind=ind+1
+#     
+#     station.j=station.ind[test.rows[j]]
+#     mon.j=months[date.ind[test.rows[j]]]
+#     mon.col=which(sort(unique(months))==mon.j)
+#     
+#     pi.smk=prior.probs[station.j,mon.col,]
+#     pi.den.rain=pi.smk[1]*dmvnorm(Twb.prof[test.rows[j],cols], mean.train[[1]][,i], cov.train[[1]][[i]])
+#     pi.den.snow=pi.smk[2]*dmvnorm(Twb.prof[test.rows[j],cols], mean.train[[2]][,i], cov.train[[2]][[i]])
+#     pi.den.pellet=pi.smk[3]*dmvnorm(Twb.prof[test.rows[j],cols], mean.train[[3]][,i], cov.train[[3]][[i]])
+#     pi.den.freeze=pi.smk[4]*dmvnorm(Twb.prof[test.rows[j],cols], mean.train[[4]][,i], cov.train[[4]][[i]])
+#     collection=c(pi.den.rain,pi.den.snow,pi.den.pellet,pi.den.freeze)
+#     prob.hats[ind,1:4]=collection/sum(collection)
+#     prob.hats[ind,5]=ptype[test.rows[j]]
+#   }
+# }
 
-write.table(prob.hats,file="baseline_classification.txt")
-#prob.hats = read.table(file="baseline_classification.txt", header=T)
+
+
+
+#write.table(prob.hats,file="baseline_classification.txt")
+prob.hats.my.base = read.table(file="baseline_classification.txt", header=T)
+prob.hats.base = read.table(file="base.txt", header=T)
+prob.hats.clim = read.table(file="climatology.txt", header=T)
+prob.hats.noaa = read.table(file="michael.txt", header=T)
+
+########################################################
+##Adjusting for different columns  
+########################################################
+prob.hats.noaa = prob.hats.noaa[,c(2,1,3,4)]
+prob.hats.noaa = cbind(prob.hats.noaa,prob.hats.base[,5])
+
 
 ########################################################
 ##Forecast Evaluation---START HERE
 ########################################################
-
-classes=c("RA","SN","IP","FZ")
+prob.hats.baseline = prob.hats.base
+classes=c("RA","SN","IP","FZRA")
 BS=0
+BS.ref=0
 for(i in 1:4){
   
-  matches=which(prob.hats[,5]==classes[i])
-  o.ik=rep(0,length(prob.hats[,5]))
+  matches=which(prob.hats.baseline[,5]==classes[i])
+  o.ik=rep(0,length(prob.hats.baseline[,5]))
   o.ik[matches]=rep(1,length(matches))
   
-  p.ik=prob.hats[,i]
+  p.ik=prob.hats.baseline[,i]
+  p.clim.ik=prob.hats.clim[,i]
   
   BS=BS+sum((p.ik-o.ik)^2,na.rm=T)
+  BS.ref = BS.ref+sum((p.clim.ik-o.ik)^2,na.rm=T)
   
 }
 
 BS
-BS/length(prob.hats[,5])
+BS/length(prob.hats.baseline[,5])
+#0.2217187
+
+BS.ref
+BS.ref/length(prob.hats.clim[,5])
+#0.2185553
+
 
 
 #Deterministic classification assessment
-observed=prob.hats[,5]
-observed[which(prob.hats[,5]=="RA")]=rep(1,length(which(prob.hats[,5]=="RA")))
-observed[which(prob.hats[,5]=="SN")]=rep(2,length(which(prob.hats[,5]=="SN")))
-observed[which(prob.hats[,5]=="IP")]=rep(3,length(which(prob.hats[,5]=="IP")))
-observed[which(prob.hats[,5]=="FZRA")]=rep(4,length(which(prob.hats[,5]=="FZRA")))
+observed=prob.hats.base[,5]
+observed[which(prob.hats.base[,5]=="RA")]=rep(1,length(which(prob.hats.base[,5]=="RA")))
+observed[which(prob.hats.base[,5]=="SN")]=rep(2,length(which(prob.hats.base[,5]=="SN")))
+observed[which(prob.hats.base[,5]=="IP")]=rep(3,length(which(prob.hats.base[,5]=="IP")))
+observed[which(prob.hats.base[,5]=="FZRA")]=rep(4,length(which(prob.hats.base[,5]=="FZRA")))
 observed=as.numeric(observed)
 summary(observed)
 table(observed)
-table(prob.hats[,5])
+table(prob.hats.base[,5])
 
-prob.class=as.matrix(prob.hats[,1:4])
+prob.class=as.matrix(prob.hats.base[,1:4])
 hard.class=as.integer(apply(prob.class,1,which.max))
 
 library(s20x)
