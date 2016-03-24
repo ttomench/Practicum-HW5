@@ -136,45 +136,45 @@ for(i in 1:12){
 
 }
 
-#######################################################
-##Computing probabilities of observations belonging to
-##each of the 4 groups
-#######################################################
-# for(i in 1:12){
-#   train.years=1996:2001+i-1
-#   test.years=2000+i
-#   
-#   train.labels.start = min(which( all.months >= 9 & all.years >=train.years[1]))
-#   train.labels.end = max(which( all.months <= 5 & all.years<=train.years[6]))
-#   test.labels.start=min(which(all.months >= 9 & all.years==test.years ))
-#   test.labels.end=max(which( all.months <= 5 & all.years==test.years+1 ))
-#   
-#   train.rows = train.labels.start:train.labels.end
-#   test.rows = test.labels.start:test.labels.end
-#   for(j in 1:test.nn[i]){
-#     #if(j%%1000==0){print(j)}
-#     ind=ind+1
-#     
-#     station.j=station.ind[test.rows[j]]
-#     mon.j=months[date.ind[test.rows[j]]]
-#     mon.col=which(sort(unique(months))==mon.j)
-#     
-#     pi.smk=prior.probs[station.j,mon.col,]
-#     pi.den.rain=pi.smk[1]*dmvnorm(Twb.prof[test.rows[j],cols], mean.train[[1]][,i], cov.train[[1]][[i]])
-#     pi.den.snow=pi.smk[2]*dmvnorm(Twb.prof[test.rows[j],cols], mean.train[[2]][,i], cov.train[[2]][[i]])
-#     pi.den.pellet=pi.smk[3]*dmvnorm(Twb.prof[test.rows[j],cols], mean.train[[3]][,i], cov.train[[3]][[i]])
-#     pi.den.freeze=pi.smk[4]*dmvnorm(Twb.prof[test.rows[j],cols], mean.train[[4]][,i], cov.train[[4]][[i]])
-#     collection=c(pi.den.rain,pi.den.snow,pi.den.pellet,pi.den.freeze)
-#     prob.hats[ind,1:4]=collection/sum(collection)
-#     prob.hats[ind,5]=ptype[test.rows[j]]
-#   }
-# }
+######################################################
+#Computing probabilities of observations belonging to
+#each of the 4 groups
+######################################################
+for(i in 1:12){
+  train.years=1996:2001+i-1
+  test.years=2000+i
+
+  train.labels.start = min(which( all.months >= 9 & all.years >=train.years[1]))
+  train.labels.end = max(which( all.months <= 5 & all.years<=train.years[6]))
+  test.labels.start=min(which(all.months >= 9 & all.years==test.years ))
+  test.labels.end=max(which( all.months <= 5 & all.years==test.years+1 ))
+
+  train.rows = train.labels.start:train.labels.end
+  test.rows = test.labels.start:test.labels.end
+  for(j in 1:test.nn[i]){
+    #if(j%%1000==0){print(j)}
+    ind=ind+1
+
+    station.j=station.ind[test.rows[j]]
+    mon.j=months[date.ind[test.rows[j]]]
+    mon.col=which(sort(unique(months))==mon.j)
+
+    pi.smk=prior.probs[station.j,mon.col,]
+    pi.den.rain=pi.smk[1]*dmvnorm(Twb.prof[test.rows[j],cols], mean.train[[1]][,i], cov.train[[1]][[i]])
+    pi.den.snow=pi.smk[2]*dmvnorm(Twb.prof[test.rows[j],cols], mean.train[[2]][,i], cov.train[[2]][[i]])
+    pi.den.pellet=pi.smk[3]*dmvnorm(Twb.prof[test.rows[j],cols], mean.train[[3]][,i], cov.train[[3]][[i]])
+    pi.den.freeze=pi.smk[4]*dmvnorm(Twb.prof[test.rows[j],cols], mean.train[[4]][,i], cov.train[[4]][[i]])
+    collection=c(pi.den.rain,pi.den.snow,pi.den.pellet,pi.den.freeze)
+    prob.hats[ind,1:4]=collection/sum(collection)
+    prob.hats[ind,5]=ptype[test.rows[j]]
+  }
+}
 
 
 
 
-#write.table(prob.hats,file="baseline_classification.txt")
-prob.hats.my.base = read.table(file="baseline_classification.txt", header=T)
+write.table(prob.hats,file="baseline_classification.txt")
+prob.hats = read.table(file="baseline_classification.txt", header=T)
 prob.hats.base = read.table(file="base.txt", header=T)
 prob.hats.clim = read.table(file="climatology.txt", header=T)
 prob.hats.noaa = read.table(file="michael.txt", header=T)
@@ -189,6 +189,7 @@ prob.hats.noaa = cbind(prob.hats.noaa,prob.hats.base[,5])
 ########################################################
 ##Forecast Evaluation---START HERE
 ########################################################
+
 prob.hats.baseline = prob.hats.base
 classes=c("RA","SN","IP","FZRA")
 BS=0
