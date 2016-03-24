@@ -62,17 +62,21 @@ test.nn=array()
 ALL.testing.rows=NULL
 for(i in 1:12){
   test.years=2000+i
-  test.labels=which(years==test.years)
-  test.rows=which(date.ind%in%test.labels)
-  test.nn[i]=length(test.rows)
+  test.labels.start=min(which(all.months >= 9 & all.years==test.years ))
+  test.labels.end=max(which( all.months <= 5 & all.years==test.years+1 ))
+  test.rows = test.labels.start:test.labels.end
+  test.nn[i]=test.labels.end - test.labels.start+1
   ALL.testing.rows=c(ALL.testing.rows,test.rows)}
-
+sum(test.nn)
 
 ########################################################
 ##Baseline (Assignment #4) Classification Model
 ########################################################
 prob.hats=data.frame(matrix(0,nrow=sum(test.nn),ncol=5))
 colnames(prob.hats)=c("prob.rain","prob.snow","prob.pellets","prob.freezing","observed")
+
+prob.hats.clim = data.frame(matrix(0,nrow=sum(test.nn),ncol=5))
+colnames(prob.hats.clim)=c("prob.rain","prob.snow","prob.pellets","prob.freezing","observed")
 
 train.nn=array()
 test.nn=array()
@@ -167,6 +171,9 @@ for(i in 1:12){
     collection=c(pi.den.rain,pi.den.snow,pi.den.pellet,pi.den.freeze)
     prob.hats[ind,1:4]=collection/sum(collection)
     prob.hats[ind,5]=ptype[test.rows[j]]
+    
+    prob.hats.clim[ind,1:4]=pi.smk
+    prob.hats.clim[ind,5]=ptype[test.rows[j]]
   }
 }
 
@@ -174,7 +181,12 @@ for(i in 1:12){
 
 
 write.table(prob.hats,file="baseline_classification.txt")
+write.table(prob.hats.clim, file="climatology_classification.txt")
+
 prob.hats = read.table(file="baseline_classification.txt", header=T)
+prob.hats.clim = read.table(file="climatology_classification.txt", header=T)
+
+
 prob.hats.base = read.table(file="base.txt", header=T)
 prob.hats.clim = read.table(file="climatology.txt", header=T)
 prob.hats.noaa = read.table(file="michael.txt", header=T)
