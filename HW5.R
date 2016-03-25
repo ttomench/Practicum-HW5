@@ -4,6 +4,7 @@
 
 rm(list=ls())
 setwd("Z:/Practicum-HW5")
+#setwd("~/Documents/HW5")
 load("predictors.Rdata")
 library(sn)
 library(fields)
@@ -78,6 +79,13 @@ colnames(prob.hats)=c("prob.rain","prob.snow","prob.pellets","prob.freezing","ob
 prob.hats.clim = data.frame(matrix(0,nrow=sum(test.nn),ncol=5))
 colnames(prob.hats.clim)=c("prob.rain","prob.snow","prob.pellets","prob.freezing","observed")
 
+
+prob.hats.train=data.frame(matrix(0,nrow=sum(test.nn),ncol=5))
+colnames(prob.hats.train)=c("prob.rain","prob.snow","prob.pellets","prob.freezing","observed")
+
+prob.hats.clim.train = data.frame(matrix(0,nrow=sum(test.nn),ncol=5))
+colnames(prob.hats.clim.train)=c("prob.rain","prob.snow","prob.pellets","prob.freezing","observed")
+
 train.nn=array()
 test.nn=array()
 
@@ -94,6 +102,9 @@ cov.train[[2]]=list()
 cov.train[[3]]=list()
 cov.train[[4]]=list()
 names(cov.train)=c("rain","snow","pellets","ice")
+
+train.rows = list()
+test.rows = list()
 
 ind=0
 
@@ -115,25 +126,25 @@ for(i in 1:12){
   train.nn[i]=train.labels.end-train.labels.start+1
   test.nn[i]=test.labels.end - test.labels.start+1
   
-  train.rows = train.labels.start:train.labels.end
-  test.rows = test.labels.start:test.labels.end
+  train.rows[[i]] = train.labels.start:train.labels.end
+  test.rows[[i]] = test.labels.start:test.labels.end
   #######################################################
   ##Computing means and covariances for each precip type
   #######################################################
-  rain.rows=which(ptype[train.rows]=="RA")
-  snow.rows=which(ptype[train.rows]=="SN")
-  pellet.rows=which(ptype[train.rows]=="IP")
-  ice.rows=which(ptype[train.rows]=="FZRA")
+  rain.rows=which(ptype[train.rows[[i]]]=="RA")
+  snow.rows=which(ptype[train.rows[[i]]]=="SN")
+  pellet.rows=which(ptype[train.rows[[i]]]=="IP")
+  ice.rows=which(ptype[train.rows[[i]]]=="FZRA")
   
-  mean.train[[1]][,i]=apply(Twb.prof[train.rows[rain.rows],cols],2,mean)
-  mean.train[[2]][,i]=apply(Twb.prof[train.rows[snow.rows],cols],2,mean)
-  mean.train[[3]][,i]=apply(Twb.prof[train.rows[pellet.rows],cols],2,mean)
-  mean.train[[4]][,i]=apply(Twb.prof[train.rows[ice.rows],cols],2,mean)
+  mean.train[[1]][,i]=apply(Twb.prof[train.rows[[i]][rain.rows],cols],2,mean)
+  mean.train[[2]][,i]=apply(Twb.prof[train.rows[[i]][snow.rows],cols],2,mean)
+  mean.train[[3]][,i]=apply(Twb.prof[train.rows[[i]][pellet.rows],cols],2,mean)
+  mean.train[[4]][,i]=apply(Twb.prof[train.rows[[i]][ice.rows],cols],2,mean)
   
-  cov.train[[1]][[i]]=cov(Twb.prof[train.rows[rain.rows],cols])
-  cov.train[[2]][[i]]=cov(Twb.prof[train.rows[snow.rows],cols])
-  cov.train[[3]][[i]]=cov(Twb.prof[train.rows[pellet.rows],cols])
-  cov.train[[4]][[i]]=cov(Twb.prof[train.rows[ice.rows],cols])
+  cov.train[[1]][[i]]=cov(Twb.prof[train.rows[[i]][rain.rows],cols])
+  cov.train[[2]][[i]]=cov(Twb.prof[train.rows[[i]][snow.rows],cols])
+  cov.train[[3]][[i]]=cov(Twb.prof[train.rows[[i]][pellet.rows],cols])
+  cov.train[[4]][[i]]=cov(Twb.prof[train.rows[[i]][ice.rows],cols])
   
   
 
@@ -144,36 +155,57 @@ for(i in 1:12){
 #Computing probabilities of observations belonging to
 #each of the 4 groups
 ######################################################
+
+
 for(i in 1:12){
-  train.years=1996:2001+i-1
-  test.years=2000+i
-
-  train.labels.start = min(which( all.months >= 9 & all.years >=train.years[1]))
-  train.labels.end = max(which( all.months <= 5 & all.years<=train.years[6]))
-  test.labels.start=min(which(all.months >= 9 & all.years==test.years ))
-  test.labels.end=max(which( all.months <= 5 & all.years==test.years+1 ))
-
-  train.rows = train.labels.start:train.labels.end
-  test.rows = test.labels.start:test.labels.end
+  print(i)
   for(j in 1:test.nn[i]){
-    #if(j%%1000==0){print(j)}
+    if(j%%1000==0){print(j)}
     ind=ind+1
 
-    station.j=station.ind[test.rows[j]]
-    mon.j=months[date.ind[test.rows[j]]]
+    station.j=station.ind[test.rows[[i]][j]]
+    mon.j=months[date.ind[test.rows[[i]][j]]]
     mon.col=which(sort(unique(months))==mon.j)
 
     pi.smk=prior.probs[station.j,mon.col,]
-    pi.den.rain=pi.smk[1]*dmvnorm(Twb.prof[test.rows[j],cols], mean.train[[1]][,i], cov.train[[1]][[i]])
-    pi.den.snow=pi.smk[2]*dmvnorm(Twb.prof[test.rows[j],cols], mean.train[[2]][,i], cov.train[[2]][[i]])
-    pi.den.pellet=pi.smk[3]*dmvnorm(Twb.prof[test.rows[j],cols], mean.train[[3]][,i], cov.train[[3]][[i]])
-    pi.den.freeze=pi.smk[4]*dmvnorm(Twb.prof[test.rows[j],cols], mean.train[[4]][,i], cov.train[[4]][[i]])
+    pi.den.rain=pi.smk[1]*dmvnorm(Twb.prof[test.rows[[i]][j],cols], mean.train[[1]][,i], cov.train[[1]][[i]])
+    pi.den.snow=pi.smk[2]*dmvnorm(Twb.prof[test.rows[[i]][j],cols], mean.train[[2]][,i], cov.train[[2]][[i]])
+    pi.den.pellet=pi.smk[3]*dmvnorm(Twb.prof[test.rows[[i]][j],cols], mean.train[[3]][,i], cov.train[[3]][[i]])
+    pi.den.freeze=pi.smk[4]*dmvnorm(Twb.prof[test.rows[[i]][j],cols], mean.train[[4]][,i], cov.train[[4]][[i]])
     collection=c(pi.den.rain,pi.den.snow,pi.den.pellet,pi.den.freeze)
-    prob.hats[ind,1:4]=collection/sum(collection)
-    prob.hats[ind,5]=ptype[test.rows[j]]
     
-    prob.hats.clim[ind,1:4]=pi.smk
-    prob.hats.clim[ind,5]=ptype[test.rows[j]]
+    
+    prob.hats.train[ind,1:4]=collection/sum(collection)
+    prob.hats.train[ind,5]=ptype[test.rows[[i]][j]]
+    
+    prob.hats.clim.train[ind,1:4]=pi.smk
+    prob.hats.clim.train[ind,5]=ptype[test.rows[[i]][j]]
+  }
+}
+
+for(i in 1:12){
+  print(i)
+  for(j in 1:test.nn[i]){
+    if(j%%1000==0){print(j)}
+    ind=ind+1
+    
+    station.j=station.ind[test.rows[[i]][j]]
+    mon.j=months[date.ind[test.rows[[i]][j]]]
+    mon.col=which(sort(unique(months))==mon.j)
+    
+    pi.smk=prior.probs[station.j,mon.col,]
+    pi.den.rain=pi.smk[1]*dmvnorm(Twb.prof[test.rows[[i]][j],cols], mean.train[[1]][,i], cov.train[[1]][[i]])
+    pi.den.snow=pi.smk[2]*dmvnorm(Twb.prof[test.rows[[i]][j],cols], mean.train[[2]][,i], cov.train[[2]][[i]])
+    pi.den.pellet=pi.smk[3]*dmvnorm(Twb.prof[test.rows[[i]][j],cols], mean.train[[3]][,i], cov.train[[3]][[i]])
+    pi.den.freeze=pi.smk[4]*dmvnorm(Twb.prof[test.rows[[i]][j],cols], mean.train[[4]][,i], cov.train[[4]][[i]])
+    collection=c(pi.den.rain,pi.den.snow,pi.den.pellet,pi.den.freeze)
+    
+    
+    prob.hats.train[ind,1:4]=collection/sum(collection)
+    prob.hats.train[ind,5]=ptype[test.rows[[i]][j]]
+    
+    prob.hats.clim.train[ind,1:4]=pi.smk
+    prob.hats.clim.train[ind,5]=ptype[test.rows[[i]][j]]
   }
 }
 
@@ -223,9 +255,12 @@ for(i in 1:4){
 BS
 BS/length(prob.hats.baseline[,5])
 #0.2217187
+BS.fun(prob.hats.base)
+
 
 BS.ref
 BS.ref/length(prob.hats.clim[,5])
+BS.fun(prob.hats.clim)
 #0.2185553
 
 
