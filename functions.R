@@ -22,6 +22,7 @@ BS.fun <- function(prob.hats) {
   return(BS/length(prob.hats[,5]))
 }
   
+
 ##### Optimizing a & b #####
 ab.BSS <- function(param,i,j){
   a = param[1]

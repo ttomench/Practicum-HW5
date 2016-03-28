@@ -181,6 +181,7 @@ for(i in 1:12){
   }
 }
 
+
 for(i in 1:12){
   print(i)
   for(j in 1:test.nn[i]){
