@@ -19,7 +19,7 @@ BS.fun <- function(prob.hats) {
     
     
   }
-  return(BS)
+  return(BS/length(prob.hats[,5]))
 }
   
 ##### Optimizing a & b #####
@@ -90,3 +90,40 @@ ab.BSS <- function(param,i,j){
   
   return(-BSS)
 }
+
+
+reliability <- function(forcast.probs){
+  classes=c("RA","SN","IP","FZRA")
+  names = c("Rain","Snow", "Pellets","Freeze")
+  color = c(rainbow(12)[5],rainbow(12)[9],rainbow(12)[3],rainbow(12)[1])
+
+  o.ik = matrix(0,length(forcast.probs[,5]),4)
+  for(i in 1:4) {
+    matches=which(forcast.probs[,5]==classes[i])
+    o.ik[matches,i]=rep(1,length(matches))
+  }
+  plot(forcast.probs[,1],o.ik[,1],col=color[1], pch="b", xlab = "Forcast Probabilities", ylab = "Observed frequencies")
+  lines(forcast.probs[,2],o.ik[,2], col= color[2], pch="b")
+  lines(forcast.probs[,3],o.ik[,3], col= color[3], pch="b")
+  lines(forcast.probs[,4],o.ik[,4], col= color[4], pch="b")
+  freqs= c(1,50000)
+  
+  par(fig=c(0,0.2,0.76,1), new=TRUE)
+  hist(forcast.probs[,1], breaks=20, col=color[1], main = names[1], ylim=freqs)
+  par(fig=c(0,0.2,0.5,.74), new=TRUE)
+  hist(forcast.probs[,2], breaks=20, col=color[2], main = names[2], ylim=freqs)
+  par(fig=c(0.7,0.9,0.26,0.5), new=TRUE)
+  hist(forcast.probs[,3], breaks=20, col=color[3], main = names[3], ylim=freqs)
+  par(fig=c(0.7,0.9,0.75,1), new=TRUE)
+  hist(forcast.probs[,4], breaks=20, col=color[4], main = names[4], ylim=freqs)
+  
+  abline(0,1)
+}
+
+
+
+
+
+
+
+

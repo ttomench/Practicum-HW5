@@ -3,8 +3,8 @@
 ## Hmwk #5 Partial Solutions
 
 rm(list=ls())
-setwd("Z:/Practicum-HW5")
-#setwd("~/Documents/HW5")
+#setwd("Z:/Practicum-HW5")
+setwd("~/Documents/Practicum/Practicum_HW5")
 load("predictors.Rdata")
 library(sn)
 library(fields)
@@ -35,15 +35,16 @@ prior.probs=array(0,dim=c(length(stations),length(unique(months)),4))
 
 for(i in 1:length(stations)){
   
-  print(i)	
+  if(i%%100==0){print(i)}	
   
   for(j in 1:length(unique(months))){
     mon=sort(unique(months))[j]
     #Finding the right stations	
     station.i=which(station.ind==i)
     #Finding the right months
-    month.labels=which(months==mon)
-    month.rows=which(date.ind%in%month.labels)
+    #month.labels=which(months==mon)
+    #month.rows=which(date.ind%in%month.labels)
+    month.rows=which(all.months==mon)
     #Getting the right stations AND months
     rows.needed=intersect(station.i,month.rows)
     
@@ -145,9 +146,6 @@ for(i in 1:12){
   cov.train[[2]][[i]]=cov(Twb.prof[train.rows[[i]][snow.rows],cols])
   cov.train[[3]][[i]]=cov(Twb.prof[train.rows[[i]][pellet.rows],cols])
   cov.train[[4]][[i]]=cov(Twb.prof[train.rows[[i]][ice.rows],cols])
-  
-  
-
 
 }
 
@@ -190,7 +188,8 @@ for(i in 1:12){
     ind=ind+1
     
     station.j=station.ind[test.rows[[i]][j]]
-    mon.j=months[date.ind[test.rows[[i]][j]]]
+    #mon.j=months[date.ind[test.rows[[i]][j]]]
+    mon.j=all.months[test.rows[[i]][j]]
     mon.col=which(sort(unique(months))==mon.j)
     
     pi.smk=prior.probs[station.j,mon.col,]
@@ -201,11 +200,11 @@ for(i in 1:12){
     collection=c(pi.den.rain,pi.den.snow,pi.den.pellet,pi.den.freeze)
     
     
-    prob.hats.train[ind,1:4]=collection/sum(collection)
-    prob.hats.train[ind,5]=ptype[test.rows[[i]][j]]
+    prob.hats[ind,1:4]=collection/sum(collection)
+    prob.hats[ind,5]=ptype[test.rows[[i]][j]]
     
-    prob.hats.clim.train[ind,1:4]=pi.smk
-    prob.hats.clim.train[ind,5]=ptype[test.rows[[i]][j]]
+    prob.hats.clim[ind,1:4]=pi.smk
+    prob.hats.clim[ind,5]=ptype[test.rows[[i]][j]]
   }
 }
 
