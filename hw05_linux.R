@@ -1,5 +1,6 @@
 rm(list=ls())
-setwd("Z:/Practicum-HW5")
+#setwd("Z:/Practicum-HW5")
+setwd("~/Documents/Practicum")
 #setwd("~/Documents/Practicum/Practicum_HW5")
 load("predictors.Rdata")
 
