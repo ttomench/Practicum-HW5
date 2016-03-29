@@ -3,8 +3,8 @@
 ## Hmwk #5 Partial Solutions
 
 rm(list=ls())
-#setwd("Z:/Practicum-HW5")
-setwd("~/Documents/Practicum/Practicum_HW5")
+setwd("Z:/Practicum-HW5")
+#setwd("~/Documents/Practicum/Practicum_HW5")
 load("predictors.Rdata")
 library(sn)
 library(fields)
@@ -173,20 +173,46 @@ for(i in 1:12){
     collection=c(pi.den.rain,pi.den.snow,pi.den.pellet,pi.den.freeze)
     
     
-    prob.hats.train[ind,1:4]=collection/sum(collection)
+    prob.hats[ind,1:4]=collection/sum(collection)
     prob.hats.train[ind,5]=ptype[test.rows[[i]][j]]
     
-    prob.hats.clim.train[ind,1:4]=pi.smk
-    prob.hats.clim.train[ind,5]=ptype[test.rows[[i]][j]]
+    prob.hats.clim[ind,1:4]=pi.smk
+    prob.hats.clim[ind,5]=ptype[test.rows[[i]][j]]
   }
 }
 
+prob.hats=data.frame(matrix(0,nrow=sum(test.nn),ncol=5))
+colnames(prob.hats)=c("prob.rain","prob.snow","prob.pellets","prob.freezing","observed")
 
+
+cov.reg = list()
+cov.reg[[1]]=list() 
+cov.reg[[2]]=list()
+cov.reg[[3]]=list()
+cov.reg[[4]]=list()
+I = diag(1,length(cols))
+
+abstart = matrix(0,13,2)
+abstart[1,] = c(1,10)
 for(i in 1:12){
+  
+  abstart[(i+1),] <- optim(abstart[i,],ab.BSS)$par
+  a = abstart[i+1,1]
+  b = abstart[i+1,2]
+  
+  cov.reg[[1]][[i]] = a*cov.train[[1]][[i]] + b*I 
+  cov.reg[[2]][[i]] = a*cov.train[[2]][[i]] + b*I
+  cov.reg[[3]][[i]] = a*cov.train[[3]][[i]] + b*I
+  cov.reg[[4]][[i]] = a*cov.train[[4]][[i]] + b*I
+  
   print(i)
+  
   for(j in 1:test.nn[i]){
     if(j%%1000==0){print(j)}
     ind=ind+1
+    
+    
+    
     
     station.j=station.ind[test.rows[[i]][j]]
     #mon.j=months[date.ind[test.rows[[i]][j]]]
@@ -194,19 +220,22 @@ for(i in 1:12){
     mon.col=which(sort(unique(months))==mon.j)
     
     pi.smk=prior.probs[station.j,mon.col,]
-    pi.den.rain=pi.smk[1]*dmvnorm(Twb.prof[test.rows[[i]][j],cols], mean.train[[1]][,i], cov.train[[1]][[i]])
-    pi.den.snow=pi.smk[2]*dmvnorm(Twb.prof[test.rows[[i]][j],cols], mean.train[[2]][,i], cov.train[[2]][[i]])
-    pi.den.pellet=pi.smk[3]*dmvnorm(Twb.prof[test.rows[[i]][j],cols], mean.train[[3]][,i], cov.train[[3]][[i]])
-    pi.den.freeze=pi.smk[4]*dmvnorm(Twb.prof[test.rows[[i]][j],cols], mean.train[[4]][,i], cov.train[[4]][[i]])
+    pi.den.rain=pi.smk[1]*dmvnorm(Twb.prof[test.rows[[i]][j],cols], mean.train[[1]][,i], cov.reg[[1]][[i]])
+    pi.den.snow=pi.smk[2]*dmvnorm(Twb.prof[test.rows[[i]][j],cols], mean.train[[2]][,i], cov.reg[[2]][[i]])
+    pi.den.pellet=pi.smk[3]*dmvnorm(Twb.prof[test.rows[[i]][j],cols], mean.train[[3]][,i], cov.reg[[3]][[i]])
+    pi.den.freeze=pi.smk[4]*dmvnorm(Twb.prof[test.rows[[i]][j],cols], mean.train[[4]][,i], cov.reg[[4]][[i]])
     collection=c(pi.den.rain,pi.den.snow,pi.den.pellet,pi.den.freeze)
     
     
     prob.hats[ind,1:4]=collection/sum(collection)
     prob.hats[ind,5]=ptype[test.rows[[i]][j]]
     
-    prob.hats.clim[ind,1:4]=pi.smk
-    prob.hats.clim[ind,5]=ptype[test.rows[[i]][j]]
+    #prob.hats.clim[ind,1:4]=pi.smk
+    #prob.hats.clim[ind,5]=ptype[test.rows[[i]][j]]
   }
+  
+  write.table(prob.hats,file="regularizatoin_classification.txt")
+  
 }
 
 
