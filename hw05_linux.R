@@ -4,7 +4,7 @@ setwd("~/Documents/Practicum")
 #setwd("~/Documents/Practicum/Practicum_HW5")
 load("predictors.Rdata")
 
-install.packages("sn","fields","mvtnorm")
+#install.packages("sn","fields","mvtnorm")
 library(sn)
 library(fields)
 library(mvtnorm)
@@ -46,83 +46,87 @@ for(i in 1:length(stations)){
 BS.fun <- function(prob.hats) {
   classes=c("RA","SN","IP","FZRA")
   BS=0
+  print(tail(prob.hats))
   for(i in 1:4){
     
     matches=which(prob.hats[,5]==classes[i])
     o.ik=rep(0,length(prob.hats[,5]))
     o.ik[matches]=rep(1,length(matches))
-    
+    #print(tail(o.ik))
     p.ik=prob.hats[,i]
-    
+    #print(tail(p.ik))
+    #print((p.ik-o.ik))
     BS=BS+sum((p.ik-o.ik)^2,na.rm=T)
-    
+    #print(BS)
     
   }
+  
   return(BS/length(prob.hats[,5]))
 }
 
 
-param = c(1,10)
+#param = c(1,10)
 ##### Optimizing a & b #####
-ab.BSS <- function(param){
+ab.BSS <- function(param) {
   print("Inner Loop")
   a = param[1]
   b = param[2]
   
   if (a < 0 || b < 0 ){return(0)}
-  
-  prob.hats=data.frame(matrix(0,nrow=sum(train.nn),ncol=5))
-  prob.hats.ref = data.frame(matrix(0,nrow=sum(train.nn),ncol=5))
 
   
   
-  train.rows = train.rows[[i]]
-  test.rows = test.rows[[i]]
+  #train.rows = train.rows[[i]]
+  #test.rows = test.rows[[i]]
   #######################################################
   ##Computing means and covariances for each precip type
   #######################################################
-  rain.rows=which(ptype[train.rows]=="RA")
-  snow.rows=which(ptype[train.rows]=="SN")
-  pellet.rows=which(ptype[train.rows]=="IP")
-  ice.rows=which(ptype[train.rows]=="FZRA")
+  rain.rows=which(ptype[train.rows[[i]]]=="RA")
+  snow.rows=which(ptype[train.rows[[i]]]=="SN")
+  pellet.rows=which(ptype[train.rows[[i]]]=="IP")
+  ice.rows=which(ptype[train.rows[[i]]]=="FZRA")
 
   cov.reg.rain=a*cov.train[[1]][[i]]+b*I
   cov.reg.snow=a*cov.train[[2]][[i]]+b*I
   cov.reg.pellet=a*cov.train[[3]][[i]]+b*I
   cov.reg.freeze=a*cov.train[[4]][[i]]+b*I
   
-  print("ab loop:")
-  print(i)
+  print("ab loop:");print(i)
   
   for(j in 1:train.nn[i]){
-    if(j%%1000==0){print(j)}
+    
+    if(j%%1000==0){print(paste("j: ",j))}
     ind=ind+1
     
     station.j=station.ind[train.rows[[i]][j]]
+    #print("station.j: ");print(station.j)
     mon.j=months[date.ind[train.rows[[i]][j]]]
     mon.col=which(sort(unique(months))==mon.j)
     
     pi.smk=prior.probs[station.j,mon.col,]
-    pi.den.rain=pi.smk[1]*dmvnorm(Twb.prof[train.rows[[i]][j],cols], mean.train[[1]][,i], cov.reg.rain)
-    pi.den.snow=pi.smk[2]*dmvnorm(Twb.prof[train.rows[[i]][j],cols], mean.train[[2]][,i], cov.reg.snow)
-    pi.den.pellet=pi.smk[3]*dmvnorm(Twb.prof[train.rows[[i]][j],cols], mean.train[[3]][,i], cov.reg.pellet)
-    pi.den.freeze=pi.smk[4]*dmvnorm(Twb.prof[train.rows[[i]][j],cols], mean.train[[4]][,i], cov.reg.freeze)
+    #print(pi.smk)
+    pi.den.rain=(pi.smk[1]*dmvnorm(Twb.prof[train.rows[[i]][j],cols], mean.train[[1]][,i], cov.reg.rain))
+    pi.den.snow=(pi.smk[2]*dmvnorm(Twb.prof[train.rows[[i]][j],cols], mean.train[[2]][,i], cov.reg.snow))
+    pi.den.pellet=(pi.smk[3]*dmvnorm(Twb.prof[train.rows[[i]][j],cols], mean.train[[3]][,i], cov.reg.pellet))
+    pi.den.freeze=(pi.smk[4]*dmvnorm(Twb.prof[train.rows[[i]][j],cols], mean.train[[4]][,i], cov.reg.freeze))
     collection=c(pi.den.rain,pi.den.snow,pi.den.pellet,pi.den.freeze)
     
-    
-    prob.hats[ind,1:4]=collection/sum(collection)
-    prob.hats[ind,5]=ptype[test.rows[[i]][j]]
+    prob.hats_1[ind,1:4]=collection/sum(collection)
+    #prob.hats_1[ind,1:4] = as.numeric(prob.hats_1[ind,1:4])
+    prob.hats_1[ind,5]=ptype[train.rows[[i]][j]]
+    #print("ind: "); print(ind)
     
     prob.hats.ref[ind,1:4]=pi.smk
-    prob.hats.ref[ind,5]=ptype[test.rows[[i]][j]]
+    prob.hats.ref[ind,5]=ptype[train.rows[[i]][j]]
+    #if(j==tail(train.rows[[i]],1)){print("prob.hats_1: "); print(tail(prob.hats_1))}
+  
     }
   
+  #prob.hats.temp = prob.hats_1
+  BS.temp[i]=BS.fun(prob.hats_1)
   
-  BS[i]= BS.fun(prob.hats)
   BS.ref[i]= BS.fun(prob.hats.ref)
-  
-  BSS[i] = 1-(BS[i]/BS.ref[i])
-  
+  BSS[i] = 1-(BS.temp[i]/BS.ref[i])
   return(-BSS[i])
 }
 
@@ -207,11 +211,11 @@ for(i in 1:12){
 
 
 
-
+#prob.hats.temp =data.frame(matrix(0,nrow=train.nn[1],ncol=5))
 prob.hats=data.frame(matrix(0,nrow=sum(test.nn),ncol=5))
 colnames(prob.hats)=c("prob.rain","prob.snow","prob.pellets","prob.freezing","observed")
 
-BS = array()
+BS.temp = array()
 BS.ref = array()
 BSS = array()
 
@@ -222,29 +226,34 @@ cov.reg[[3]]=list()
 cov.reg[[4]]=list()
 I = diag(1,length(cols))
 
-abstart = matrix(0,13,2)
-abstart[1,] = c(1,10)
+ab_s = matrix(0,12,2)
+abstart = c(1,10)
 print("Main Loop:")
-
-for(i in 1:12){
+ind = 0
+for(i in 1:12) {
+  print(paste("ML: ",i))
+  prob.hats_1 =data.frame(matrix(0,nrow=train.nn[i],ncol=5))
+  prob.hats.ref = data.frame(matrix(0,nrow=train.nn[i],ncol=5))
+  BS.temp[i] = 0
+  BS.ref[i] = 0
+  BSS[i] = 0
   
-  abstart[(i+1),] <- optim(abstart[i,],ab.BSS)$par
-  a = abstart[i+1,1]
-  b = abstart[i+1,2]
+  abstart <- optim(abstart, ab.BSS)$par
+  #print(head(prob.hats.temp))
+  
+  ab_s[i,] = abstart
+  a = abstart[1]
+  b = abstart[2]
   
   cov.reg[[1]][[i]] = a*cov.train[[1]][[i]] + b*I 
   cov.reg[[2]][[i]] = a*cov.train[[2]][[i]] + b*I
   cov.reg[[3]][[i]] = a*cov.train[[3]][[i]] + b*I
   cov.reg[[4]][[i]] = a*cov.train[[4]][[i]] + b*I
-  print("ML: ")
-  print(i)
+ 
   
   for(j in 1:test.nn[i]){
-    if(j%%1000==0){print(j)}
+    if(j%%1000==0){print(paste("prob_hats loop: ",j))}
     ind=ind+1
-    
-    
-    
     
     station.j=station.ind[test.rows[[i]][j]]
     #mon.j=months[date.ind[test.rows[[i]][j]]]
