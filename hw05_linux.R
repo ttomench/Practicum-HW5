@@ -46,7 +46,7 @@ for(i in 1:length(stations)){
 BS.fun <- function(prob.hats) {
   classes=c("RA","SN","IP","FZRA")
   BS=0
-  print(tail(prob.hats))
+  #print(tail(prob.hats))
   for(i in 1:4){
     
     matches=which(prob.hats[,5]==classes[i])
@@ -68,6 +68,7 @@ BS.fun <- function(prob.hats) {
 #param = c(1,10)
 ##### Optimizing a & b #####
 ab.BSS <- function(param) {
+  
   print("Inner Loop")
   a = param[1]
   b = param[2]
@@ -91,11 +92,12 @@ ab.BSS <- function(param) {
   cov.reg.pellet=a*cov.train[[3]][[i]]+b*I
   cov.reg.freeze=a*cov.train[[4]][[i]]+b*I
   
-  print("ab loop:");print(i)
-  
+  #print("ab loop:");print(i)
+  itter = itter+1
+  print("itteration");print(itter)
   for(j in 1:train.nn[i]){
     
-    if(j%%1000==0){print(paste("j: ",j))}
+    if(j%%3000==0){print(paste("j: ",j))}
     ind=ind+1
     
     station.j=station.ind[train.rows[[i]][j]]
@@ -237,6 +239,7 @@ for(i in 1:12) {
   BS.temp[i] = 0
   BS.ref[i] = 0
   BSS[i] = 0
+  itter = 0
   
   abstart <- optim(abstart, ab.BSS)$par
   #print(head(prob.hats.temp))
