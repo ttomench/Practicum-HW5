@@ -3,8 +3,8 @@
 ## Hmwk #5 Partial Solutions
 
 rm(list=ls())
-setwd("Z:/Practicum-HW5")
-#setwd("~/Documents/Practicum/Practicum_HW5")
+#setwd("Z:/Practicum-HW5")
+setwd("~/Documents/Practicum/Practicum_HW5")
 load("predictors.Rdata")
 library(sn)
 library(fields)
@@ -31,32 +31,33 @@ all.years = as.numeric(substr(dates[date.ind],1,4))
 ############################
 ##Computing Prior Probabilities
 ############################
-prior.probs=array(0,dim=c(length(stations),length(unique(months)),4))
-
-for(i in 1:length(stations)){
-  
-  if(i%%100==0){print(i)}	
-  
-  for(j in 1:length(unique(months))){
-    mon=sort(unique(months))[j]
-    #Finding the right stations	
-    station.i=which(station.ind==i)
-    #Finding the right months
-    #month.labels=which(months==mon)
-    #month.rows=which(date.ind%in%month.labels)
-    month.rows=which(all.months==mon)
-    #Getting the right stations AND months
-    rows.needed=intersect(station.i,month.rows)
-    
-    rain.nn=length(which(ptype[rows.needed]=="RA"))
-    snow.nn=length(which(ptype[rows.needed]=="SN"))
-    pellet.nn=length(which(ptype[rows.needed]=="IP"))
-    ice.nn=length(which(ptype[rows.needed]=="FZRA"))
-    
-    prior.probs[i,j,1:4]=c(rain.nn,snow.nn,pellet.nn,ice.nn)/length(rows.needed)		
-  }
-}
-
+# prior.probs=array(0,dim=c(length(stations),length(unique(months)),4))
+# 
+# for(i in 1:length(stations)){
+#   
+#   if(i%%100==0){print(i)}	
+#   
+#   for(j in 1:length(unique(months))){
+#     mon=sort(unique(months))[j]
+#     #Finding the right stations	
+#     station.i=which(station.ind==i)
+#     #Finding the right months
+#     #month.labels=which(months==mon)
+#     #month.rows=which(date.ind%in%month.labels)
+#     month.rows=which(all.months==mon)
+#     #Getting the right stations AND months
+#     rows.needed=intersect(station.i,month.rows)
+#     
+#     rain.nn=length(which(ptype[rows.needed]=="RA"))
+#     snow.nn=length(which(ptype[rows.needed]=="SN"))
+#     pellet.nn=length(which(ptype[rows.needed]=="IP"))
+#     ice.nn=length(which(ptype[rows.needed]=="FZRA"))
+#     
+#     prior.probs[i,j,1:4]=c(rain.nn,snow.nn,pellet.nn,ice.nn)/length(rows.needed)		
+#   }
+# }
+# write.table(prior.probs,file="prior_probs.txt")
+prior.probs=read.table("prior_probs.txt")
 ########################################################
 ##Find the total number of testing profiles and all of their indices
 ########################################################
@@ -157,29 +158,37 @@ for(i in 1:12){
 
 for(i in 1:12){
   print(i)
-  for(j in 1:test.nn[i]){
+  for(j in 1:train.nn[i]){
     if(j%%1000==0){print(j)}
     ind=ind+1
 
-    station.j=station.ind[test.rows[[i]][j]]
-    mon.j=months[date.ind[test.rows[[i]][j]]]
+    station.j=station.ind[train.rows[[i]][j]]
+    mon.j=months[date.ind[train.rows[[i]][j]]]
     mon.col=which(sort(unique(months))==mon.j)
 
     pi.smk=prior.probs[station.j,mon.col,]
-    pi.den.rain=pi.smk[1]*dmvnorm(Twb.prof[test.rows[[i]][j],cols], mean.train[[1]][,i], cov.train[[1]][[i]])
-    pi.den.snow=pi.smk[2]*dmvnorm(Twb.prof[test.rows[[i]][j],cols], mean.train[[2]][,i], cov.train[[2]][[i]])
-    pi.den.pellet=pi.smk[3]*dmvnorm(Twb.prof[test.rows[[i]][j],cols], mean.train[[3]][,i], cov.train[[3]][[i]])
-    pi.den.freeze=pi.smk[4]*dmvnorm(Twb.prof[test.rows[[i]][j],cols], mean.train[[4]][,i], cov.train[[4]][[i]])
+    pi.den.rain=pi.smk[1]*dmvnorm(Twb.prof[train.nn[[i]][j],cols], mean.train[[1]][,i], cov.train[[1]][[i]])
+    pi.den.snow=pi.smk[2]*dmvnorm(Twb.prof[train.nn[[i]][j],cols], mean.train[[2]][,i], cov.train[[2]][[i]])
+    pi.den.pellet=pi.smk[3]*dmvnorm(Twb.prof[train.nn[[i]][j],cols], mean.train[[3]][,i], cov.train[[3]][[i]])
+    pi.den.freeze=pi.smk[4]*dmvnorm(Twb.prof[train.nn[[i]][j],cols], mean.train[[4]][,i], cov.train[[4]][[i]])
     collection=c(pi.den.rain,pi.den.snow,pi.den.pellet,pi.den.freeze)
     
     
     prob.hats[ind,1:4]=collection/sum(collection)
-    prob.hats.train[ind,5]=ptype[test.rows[[i]][j]]
+    prob.hats[ind,5]=ptype[test.rows[[i]][j]]
     
     prob.hats.clim[ind,1:4]=pi.smk
     prob.hats.clim[ind,5]=ptype[test.rows[[i]][j]]
   }
 }
+
+write.table(prob.hats,file="baseline_classification_train.txt")
+write.table(prob.hats.clim, file="climatology_classification_train.txt")
+
+BS=BS.fun(prob.hats);BS
+BS.ref=BS.fun(prob.hats.clim);BS.ref
+BSS=1-(BS/BS.ref);BSS
+
 
 prob.hats=data.frame(matrix(0,nrow=sum(test.nn),ncol=5))
 colnames(prob.hats)=c("prob.rain","prob.snow","prob.pellets","prob.freezing","observed")
