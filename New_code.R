@@ -30,7 +30,7 @@ all.months= as.numeric(substr(dates[date.ind],5,6))
 all.years = as.numeric(substr(dates[date.ind],1,4))
 
 # write.table(prior.probs,file="prior_probs.txt")
-prior.probs=read.table("prior_probs.txt")
+prior.probs<-read.table("prior_probs.txt")
 ########################################################
 ##Find the total number of testing profiles and all of their indices
 ########################################################
