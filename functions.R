@@ -90,39 +90,55 @@ ab.BSS <- function(param) {
 
 
 library(verification)
-reliability <- function(forecast.probs){
-  
-  classes=c("RA","SN","IP","FZRA")
-  names = c("Rain","Snow", "Pellets","Freeze")
+reliability <- function(prob.forecast){
+  #prob.forecast= prob.fcst.rda
+  classes=c("SN","RA","IP","FZRA")
+  names = c("Snow","Rain", "Pellets","Freeze")
   color = c(rainbow(12)[5],rainbow(12)[9],rainbow(12)[3],rainbow(12)[1])
-
-  o.ik = matrix(0,length(forecast.probs[,5]),4)
-  for(i in 1:4) {
-    matches=which(forecast.probs[,5]==classes[i])
-    o.ik[matches,i]=rep(1,length(matches))
-  }
-  plot(forecast.probs[,1],o.ik[,1],col=color[1], pch="b", xlab = "Forcast Probabilities", ylab = "Observed frequencies")
-  lines(forecast.probs[,2],o.ik[,2], col= color[2], pch="b")
-  lines(forecast.probs[,3],o.ik[,3], col= color[3], pch="b")
-  lines(forecast.probs[,4],o.ik[,4], col= color[4], pch="b")
-  freqs= c(1,50000)
+#   for (k in 1:K)  {
+#     I <- outer(prob.forecast[use,k], breaks[-length(breaks)], ">=") & outer(prob.forecast[use,k], breaks[-1], "<")
+#     n[k,] <- apply(I, 2, sum)
+#     x[k,] <- apply(I*prob.forecast[use,k], 2, sum, na.rm=TRUE)
+#     y[k,] <- apply(I*(ptype[use]==k), 2, sum, na.rm=TRUE)
+#   }
   
-  par(fig=c(0,0.2,0.76,1), new=TRUE)
-  hist(forecast.probs[,1], breaks=20, col=color[1], main = names[1], ylim=freqs)
-  par(fig=c(0,0.2,0.5,.74), new=TRUE)
-  hist(forecast.probs[,2], breaks=20, col=color[2], main = names[2], ylim=freqs)
-  par(fig=c(0.7,0.9,0.26,0.5), new=TRUE)
-  hist(forecast.probs[,3], breaks=20, col=color[3], main = names[3], ylim=freqs)
-  par(fig=c(0.7,0.9,0.75,1), new=TRUE)
-  hist(forecast.probs[,4], breaks=20, col=color[4], main = names[4], ylim=freqs)
+    for (k in 1:4)  {
+      I <- outer(prob.forecast[use,k], breaks[-length(breaks)], ">=") & outer(prob.forecast[use,k], breaks[-1], "<")
+      n[k,] <- apply(I, 2, sum)
+      x[k,] <- apply(I*prob.forecast[use,k], 2, sum, na.rm=TRUE)
+      y[k,] <- apply(I*(prob.forecast[,5]==classes[k]), 2, sum, na.rm=TRUE)
+    }
   
+  
+  
+  pdf(file="Figures/Reliability.pdf", width=15, height=12)
+  #freqs= c(0,1)
+  plot(x[1,]/(n[1,]),y[1,]/(n[1,]),col=color[1], type="o", xlim = c(0,1), ylim = c(0,1), xlab = "Forcast Probabilities", ylab = "Observed frequencies")
+  lines(x[2,]/n[2,],y[2,]/n[2,], col= color[2], type = "o")
+  lines(x[3,]/n[3,],y[3,]/n[3,], col= color[3], type="o")
+  lines(x[4,]/n[4,],y[4,]/n[4,], col= color[4], type="o")
   abline(0,1)
+  legend(0.1,0.9,legend=classes,col = color,pch = 'o')
+  dev.off()
+  
+  pdf(file="Figures/Bar_plots.pdf", width=18, height=5)
+  par(mfrow=c(1,4))
+  #par(fig=c(0,0.2,0.76,1), new=TRUE)
+  hist(x[1,]/n[1,], col=color[1], main = names[1])
+  #par(fig=c(0,0.2,0.5,.74), new=TRUE)
+  hist(x[2,]/(n[2,]), col=color[2], main = names[2])
+  #par(fig=c(0.7,0.9,0.26,0.5), new=TRUE)
+  hist(x[3,]/(n[3,]), col=color[3], main = names[3])
+  #par(fig=c(0.7,0.9,0.75,1), new=TRUE)
+  hist(x[4,]/(n[4,]), col=color[4], main = names[4])
+  dev.off()
+  
 }
 
 
 
 
-
+reliability(prob.forecast)
 
 
 

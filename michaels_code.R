@@ -202,6 +202,9 @@ for (iyear in 1:12)  {   # loop over the 12 cool seasons 2001-2012, use the prev
   #param[iyear,] <- optim( c(1,10), CVscore.RDA, profiles=Twb.prof.train, ptype=ptype.train, mu.K=mu.K, e.K=e.K, v.K=v.K, prob.cl=prob.fcst.climo.train, control=list(parscale=c(0.1,3)))$par
   param[iyear,] <- optim( c(1,10), CVscore.RDA, profiles=Twb.prof.train, ptype=ptype.train, mu.K=mu.K,Sig.K=Sigma.K, prob.cl=prob.fcst.climo.train, control=list(parscale=c(0.1,3)))$par
   
+  time_now = (proc.time()-time)/(3600)
+  print(time_now)
+  
   print(signif(param[iyear,],3))
   
   #verif.ind.ss <- verif.ind[!is.na(ptype[verif.ind])]

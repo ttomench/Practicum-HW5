@@ -31,33 +31,33 @@ all.years = as.numeric(substr(dates[date.ind],1,4))
 ############################
 ##Computing Prior Probabilities
 ############################
-# prior.probs=array(0,dim=c(length(stations),length(unique(months)),4))
-# 
-# for(i in 1:length(stations)){
-#   
-#   if(i%%100==0){print(i)}	
-#   
-#   for(j in 1:length(unique(months))){
-#     mon=sort(unique(months))[j]
-#     #Finding the right stations	
-#     station.i=which(station.ind==i)
-#     #Finding the right months
-#     #month.labels=which(months==mon)
-#     #month.rows=which(date.ind%in%month.labels)
-#     month.rows=which(all.months==mon)
-#     #Getting the right stations AND months
-#     rows.needed=intersect(station.i,month.rows)
-#     
-#     rain.nn=length(which(ptype[rows.needed]=="RA"))
-#     snow.nn=length(which(ptype[rows.needed]=="SN"))
-#     pellet.nn=length(which(ptype[rows.needed]=="IP"))
-#     ice.nn=length(which(ptype[rows.needed]=="FZRA"))
-#     
-#     prior.probs[i,j,1:4]=c(rain.nn,snow.nn,pellet.nn,ice.nn)/length(rows.needed)		
-#   }
-# }
+prior.probs=array(0,dim=c(length(stations),length(unique(months)),4))
+
+for(i in 1:length(stations)){
+  
+  if(i%%100==0){print(i)}	
+  
+  for(j in 1:length(unique(months))){
+    mon=sort(unique(months))[j]
+    #Finding the right stations	
+    station.i=which(station.ind==i)
+    #Finding the right months
+    #month.labels=which(months==mon)
+    #month.rows=which(date.ind%in%month.labels)
+    month.rows=which(all.months==mon)
+    #Getting the right stations AND months
+    rows.needed=intersect(station.i,month.rows)
+    
+    rain.nn=length(which(ptype[rows.needed]=="RA"))
+    snow.nn=length(which(ptype[rows.needed]=="SN"))
+    pellet.nn=length(which(ptype[rows.needed]=="IP"))
+    ice.nn=length(which(ptype[rows.needed]=="FZRA"))
+    
+    prior.probs[i,j,1:4]=c(rain.nn,snow.nn,pellet.nn,ice.nn)/length(rows.needed)		
+  }
+}
 # write.table(prior.probs,file="prior_probs.txt")
-prior.probs=read.table("prior_probs.txt")
+#prior.probs=read.table("prior_probs.txt")
 ########################################################
 ##Find the total number of testing profiles and all of their indices
 ########################################################
@@ -190,6 +190,8 @@ BS.ref=BS.fun(prob.hats.clim);BS.ref
 BSS=1-(BS/BS.ref);BSS
 
 
+
+
 prob.hats=data.frame(matrix(0,nrow=sum(test.nn),ncol=5))
 colnames(prob.hats)=c("prob.rain","prob.snow","prob.pellets","prob.freezing","observed")
 
@@ -250,8 +252,8 @@ for(i in 1:12){
 
 
 
-write.table(prob.hats,file="baseline_classification.txt")
-write.table(prob.hats.clim, file="climatology_classification.txt")
+write.table(prob.hats,file="baseline_classification.txt",header=T)
+write.table(prob.hats.clim, file="climatology_classification.txt",header=T)
 
 prob.hats = read.table(file="baseline_classification.txt", header=T)
 prob.hats.clim = read.table(file="climatology_classification.txt", header=T)
@@ -301,20 +303,27 @@ BS.ref/length(prob.hats.clim[,5])
 BS.fun(prob.hats.clim)
 #0.2185553
 
+BS=BS.fun(prob.hats.base);BS
+BS.ref=BS.fun(prob.hats.clim);BS.ref
+BSS=1-(BS/BS.ref);BSS
 
+BS=BS.fun(prob.hats.noaa);BS
+BS.ref=BS.fun(prob.hats.clim);BS.ref
+BSS=1-(BS/BS.ref);BSS
 
 #Deterministic classification assessment
-observed=prob.hats.base[,5]
-observed[which(prob.hats.base[,5]=="RA")]=rep(1,length(which(prob.hats.base[,5]=="RA")))
-observed[which(prob.hats.base[,5]=="SN")]=rep(2,length(which(prob.hats.base[,5]=="SN")))
-observed[which(prob.hats.base[,5]=="IP")]=rep(3,length(which(prob.hats.base[,5]=="IP")))
-observed[which(prob.hats.base[,5]=="FZRA")]=rep(4,length(which(prob.hats.base[,5]=="FZRA")))
+probhats = prob.hats.noaa
+observed=rep(0,length(probhats[,5]))
+observed[which(probhats[,5]=="RA")]<-rep(1,length(which(probhats[,5]=="RA")))
+observed[which(probhats[,5]=="SN")]<-rep(2,length(which(probhats[,5]=="SN")))
+observed[which(probhats[,5]=="IP")]<-rep(3,length(which(probhats[,5]=="IP")))
+observed[which(probhats[,5]=="FZRA")]<-rep(4,length(which(probhats[,5]=="FZRA")))
 observed=as.numeric(observed)
 summary(observed)
 table(observed)
-table(prob.hats.base[,5])
+table(prob.hats[,5])
 
-prob.class=as.matrix(prob.hats.base[,1:4])
+prob.class=as.matrix(probhats[,1:4])
 hard.class=as.integer(apply(prob.class,1,which.max))
 
 library(s20x)
@@ -356,62 +365,91 @@ cov.train[[2]]=list()
 cov.train[[3]]=list()
 cov.train[[4]]=list()
 
+train.rows = list()
+test.rows = list()
+
 names(cov.train)=c("rain","snow","pellets","ice")
 
+I = diag(1,16,16)
+a = 0.659
+b= 31.400
+
 for(i in 1:12){
-  train.years=1996:2000+i-1
+  train.years=1996:2001+i-1
   test.years=2000+i
   
-  #print(i)
-  #print(train.years)
-  #print(test.years)
+  print(i)
   
-  train.labels=which(years>=train.years[1]& years<=train.years[5])
-  test.labels=which(years==test.years)
+  train.labels.start = min(which( all.months >= 9 & all.years >=train.years[1]))
+  train.labels.end = max(which( all.months <= 5 & all.years<=train.years[6]))
+  test.labels.start=min(which(all.months >= 9 & all.years==test.years ))
+  test.labels.end=max(which( all.months <= 5 & all.years==test.years+1 ))
   
-  train.rows=which(date.ind%in%train.labels)
-  test.rows=which(date.ind%in%test.labels)
+  train.nn[i]=train.labels.end-train.labels.start+1
+  test.nn[i]=test.labels.end - test.labels.start+1
   
-  train.nn[i]=length(train.rows)
-  test.nn[i]=length(test.rows)
+  train.rows[[i]] = train.labels.start:train.labels.end
+  test.rows[[i]] = test.labels.start:test.labels.end
   
   #######################################################
   ##Computing means and covariances for each precip type
   #######################################################
-  rain.rows=which(ptype[train.rows]=="RA")
-  snow.rows=which(ptype[train.rows]=="SN")
-  pellet.rows=which(ptype[train.rows]=="IP")
-  ice.rows=which(ptype[train.rows]=="FZRA")
+  rain.rows=which(ptype[train.rows[[i]]]=="RA")
+  snow.rows=which(ptype[train.rows[[i]]]=="SN")
+  pellet.rows=which(ptype[train.rows[[i]]]=="IP")
+  ice.rows=which(ptype[train.rows[[i]]]=="FZRA")
   
-  mean.train[[1]][,i]=apply(Twb.prof[train.rows[rain.rows],1:16],2,mean)
-  mean.train[[2]][,i]=apply(Twb.prof[train.rows[snow.rows],1:16],2,mean)
-  mean.train[[3]][,i]=apply(Twb.prof[train.rows[pellet.rows],1:16],2,mean)
-  mean.train[[4]][,i]=apply(Twb.prof[train.rows[ice.rows],1:16],2,mean)
+  mean.train[[1]][,i]=apply(Twb.prof[rain.rows,1:16],2,mean)
+  mean.train[[2]][,i]=apply(Twb.prof[snow.rows,1:16],2,mean)
+  mean.train[[3]][,i]=apply(Twb.prof[pellet.rows,1:16],2,mean)
+  mean.train[[4]][,i]=apply(Twb.prof[ice.rows,1:16],2,mean)
   
-  cov.train[[1]][[i]]=cov(Twb.prof[train.rows[rain.rows],1:16])
-  cov.train[[2]][[i]]=cov(Twb.prof[train.rows[snow.rows],1:16])
-  cov.train[[3]][[i]]=cov(Twb.prof[train.rows[pellet.rows],1:16])
-  cov.train[[4]][[i]]=cov(Twb.prof[train.rows[ice.rows],1:16])
+  cov.train[[1]][[i]]=cov(Twb.prof[rain.rows,1:16])
+  cov.train[[2]][[i]]=cov(Twb.prof[snow.rows,1:16])
+  cov.train[[3]][[i]]=cov(Twb.prof[pellet.rows,1:16])
+  cov.train[[4]][[i]]=cov(Twb.prof[ice.rows,1:16])
   
+  cov.reg.rain = a*cov.train[[1]][[i]]+b*I
+  cov.reg.snow = a*cov.train[[2]][[i]]+b*I
+  cov.reg.ip = a*cov.train[[3]][[i]]+b*I
+  cov.reg.fzra = a*cov.train[[4]][[i]]+b*I
+  #######################################################
+  ##Plotting the covariances for each precip type
+  #######################################################
+  pdf(file=paste("Figures/covariance_training_", i, ".pdf",sep=""), width=18, height=5)
+  par(mfrow=c(1,4))
+  image.plot(1:16,1:16,t(cov.train[[1]][[i]][16:1,]), xaxt="n",yaxt="n",xlab="",ylab="")
+  title("Rain Cov", cex.main=2.5)
+  
+  image.plot(1:16,1:16,t(cov.train[[2]][[i]][16:1,]), xaxt="n",yaxt="n",xlab="",ylab="")
+  title("Snow Cov", cex.main=2.5)
+  
+  image.plot(1:16,1:16,t(cov.train[[3]][[i]][16:1,]),xaxt="n",yaxt="n",xlab="",ylab="")
+  title("Pellets Cov", cex.main=2.5)
+  
+  image.plot(1:16,1:16,t(cov.train[[4]][[i]][16:1,]),xaxt="n",yaxt="n",xlab="",ylab="")
+  title("Freeing Rain Cov", cex.main=2.5)
+  
+  dev.off()
   
   #######################################################
   ##Plotting the covariances for each precip type
   #######################################################
-  #pdf(file=paste("Figures/covariance_training_", i, ".pdf",sep=""), width=18, height=5)
+  pdf(file=paste("Figures/covariance_reg_training_", i, ".pdf",sep=""), width=18, height=5)
   par(mfrow=c(1,4))
-  image.plot(1:16,1:16,t(cov.train[[1]][[i]][16:1,]), xaxt="n",yaxt="n",xlab="",ylab="")
-  title(paste("Rain Cov, Training ", i, sep=""), cex.main=2.5)
+  image.plot(1:16,1:16,t(cov.reg.rain[16:1,]), xaxt="n",yaxt="n",xlab="",ylab="")
+  title("Regularized Rain", cex.main=2.5)
   
-  image.plot(1:16,1:16,t(cov.train[[2]][[i]][16:1,]), xaxt="n",yaxt="n",xlab="",ylab="")
-  title(paste("Snow Cov, Training ", i, sep=""), cex.main=2.5)
+  image.plot(1:16,1:16,t(cov.reg.snow[16:1,]), xaxt="n",yaxt="n",xlab="",ylab="")
+  title("Regularized Snow", cex.main=2.5)
   
-  image.plot(1:16,1:16,t(cov.train[[3]][[i]][16:1,]),xaxt="n",yaxt="n",xlab="",ylab="")
-  title(paste("Pellets Cov, Training ", i, sep=""), cex.main=2.5)
+  image.plot(1:16,1:16,t(cov.reg.ip[16:1,]),xaxt="n",yaxt="n",xlab="",ylab="")
+  title("Regularized Pellets", cex.main=2.5)
   
-  image.plot(1:16,1:16,t(cov.train[[4]][[i]][16:1,]),xaxt="n",yaxt="n",xlab="",ylab="")
-  title(paste("Freeing Rain Cov, Training ", i, sep=""), cex.main=2.5)
+  image.plot(1:16,1:16,t(cov.reg.fzra[16:1,]),xaxt="n",yaxt="n",xlab="",ylab="")
+  title("Regularized Freeing Rain", cex.main=2.5)
   
-  #dev.off()
+  dev.off()
   
 }
 
